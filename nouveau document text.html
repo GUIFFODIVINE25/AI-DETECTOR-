@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Text Detector</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f7fb;
+            color: #1f2937;
+        }
+
+        .navbar {
+            background: #141f37;
+            color: white;
+            padding: 18px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .logo span {
+            color: #4da3ff;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 40px auto;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            color: #141f37;
+            margin-bottom: 12px;
+        }
+
+        .hero p {
+            color: #667085;
+            font-size: 17px;
+        }
+
+        .detector-card {
+            background: white;
+            border-radius: 18px;
+            padding: 30px;
+            box-shadow: 0 10px 35px rgba(20, 31, 55, 0.08);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 260px;
+            resize: vertical;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px;
+            font-size: 16px;
+            line-height: 1.6;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: #4d8edb;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .word-count {
+            color: #667085;
+            font-size: 14px;
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 13px 22px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .detect-btn {
+            background: #2d69be;
+            color: white;
+        }
+
+        .detect-btn:hover {
+            background: #23589f;
+        }
+
+        .clear-btn {
+            background: #e9eef5;
+            color: #26364d;
+        }
+
+        .result {
+            display: none;
+            margin-top: 30px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 30px;
+        }
+
+        .result-title {
+            text-align: center;
+            font-size: 30px;
+            font-weight: 700;
+            margin-bottom: 25px;
+        }
+
+        .result-title.ai {
+            color: #c2410c;
+        }
+
+        .result-title.human {
+            color: #15803d;
+        }
+
+        .result-title.uncertain {
+            color: #a16207;
+        }
+
+        .scores {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .score-card {
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 22px;
+        }
+
+        .score-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .bar {
+            width: 100%;
+            height: 14px;
+            background: #e5e7eb;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0;
+            border-radius: 20px;
+            transition: width 0.8s ease;
+        }
+
+        .ai-bar {
+            background: #ef7d32;
+        }
+
+        .human-bar {
+            background: #22a06b;
+        }
+
+        .info {
+            margin-top: 25px;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .info p {
+            margin-bottom: 8px;
+        }
+
+        .warning {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff8e7;
+            border-radius: 10px;
+            color: #7a5b00;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .examples {
+            margin-top: 35px;
+        }
+
+        .examples h2 {
+            margin-bottom: 15px;
+        }
+
+        .example-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .example {
+            background: white;
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .example:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+        }
+
+        .example strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #141f37;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #667085;
+            font-size: 14px;
+        }
+
+        @media (max-width: 700px) {
+
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            .scores,
+            .example-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .detector-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="logo">
+            AI<span>Detector</span>
+        </div>
+
+        <div>
+            Machine Learning
+        </div>
+    </nav>
+
+
+    <main class="container">
+
+        <section class="hero">
+            <h1>AI Text Detector</h1>
+
+            <p>
+                Analyze text and estimate whether it resembles
+                human-written or AI-generated training examples.
+            </p>
+        </section>
+
+
+        <section class="detector-card">
+
+            <textarea
+                id="textInput"
+                placeholder="Paste or type your text here..."
+                oninput="updateWordCount()"
+            ></textarea>
+
+
+            <div class="controls">
+
+                <div class="word-count">
+                    Words:
+                    <span id="wordCount">0</span>
+                </div>
+
+                <div>
+                    <button
+                        class="clear-btn"
+                        onclick="clearText()"
+                    >
+                        Clear
+                    </button>
+
+                    <button
+                        class="detect-btn"
+                        onclick="detectText()"
+                    >
+                        Analyze Text
+                    </button>
+                </div>
+
+            </div>
+
+
+            <div class="result" id="result">
+
+                <div
+                    class="result-title"
+                    id="resultTitle"
+                >
+                    UNCERTAIN
+                </div>
+
+
+                <div class="scores">
+
+                    <div class="score-card">
+
+                        <div class="score-header">
+                            <span>AI Score</span>
+                            <span id="aiScore">0%</span>
+                        </div>
+
+                        <div class="bar">
+                            <div
+                                class="bar-fill ai-bar"
+                                id="aiBar"
+                            ></div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="score-card">
+
+                        <div class="score-header">
+                            <span>Human Score</span>
+                            <span id="humanScore">0%</span>
+                        </div>
+
+                        <div class="bar">
+                            <div
+                                class="bar-fill human-bar"
+                                id="humanBar"
+                            ></div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="info">
+
+                    <p>
+                        <strong>Word count:</strong>
+                        <span id="resultWordCount">0</span>
+                    </p>
+
+                    <p>
+                        <strong>Classification:</strong>
+                        <span id="classification">UNCERTAIN</span>
+                    </p>
+
+                </div>
+
+
+                <div class="warning">
+
+                    ⚠️ These probabilities are estimates from the
+                    detector. They are not proof of authorship.
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="examples">
+
+            <h2>Try an Example</h2>
+
+            <div class="example-grid">
+
+                <div
+                    class="example"
+                    onclick="loadExample(1)"
+                >
+
+                    <strong>Example 1</strong>
+
+                    Technology has changed the way people communicate,
+                    work and access information.
+
+                </div>
+
+
+                <div
+                    class="example"
+                    onclick="loadExample(2)"
+                >
+
+                    <strong>Example 2</strong>
+
+                    In today's rapidly evolving technological landscape,
+                    artificial intelligence continues to transform
+                    numerous aspects of modern society.
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <footer>
+
+        AI Text Detector • Machine Learning Project
+
+    </footer>
+
+
+    <script>
+
+        const textInput =
+            document.getElementById("textInput");
+
+        const wordCount =
+            document.getElementById("wordCount");
+
+        const result =
+            document.getElementById("result");
+
+        const resultTitle =
+            document.getElementById("resultTitle");
+
+        const aiScore =
+            document.getElementById("aiScore");
+
+        const humanScore =
+            document.getElementById("humanScore");
+
+        const aiBar =
+            document.getElementById("aiBar");
+
+        const humanBar =
+            document.getElementById("humanBar");
+
+        const resultWordCount =
+            document.getElementById("resultWordCount");
+
+        const classification =
+            document.getElementById("classification");
+
+
+        function cleanText(text) {
+
+            return text
+                .replace(/\s+/g, " ")
+                .trim();
+
+        }
+
+
+        function countWords(text) {
+
+            text = cleanText(text);
+
+            if (!text) {
+                return 0;
+            }
+
+            return text.split(/\s+/).length;
+
+        }
+
+
+        function updateWordCount() {
+
+            const count =
+                countWords(textInput.value);
+
+            wordCount.textContent = count;
+
+        }
+
+
+        function clearText() {
+
+            textInput.value = "";
+
+            updateWordCount();
+
+            result.style.display = "none";
+
+        }
+
+
+        function detectText() {
+
+            const text =
+                cleanText(textInput.value);
+
+
+            if (!text) {
+
+                alert("Please enter some text first.");
+
+                return;
+
+            }
+
+
+            const words =
+                countWords(text);
+
+
+            /*
+             * DEMONSTRATION SCORING
+             *
+             * This section is only a front-end prototype.
+             *
+             * Your real application should send the text
+             * to the Python/FastAPI backend, which loads:
+             *
+             * models/ai_detector.joblib
+             *
+             * and calls:
+             *
+             * model.predict_proba([text])
+             */
+
+
+            let aiProbability =
+                calculateDemoScore(text);
+
+
+            let humanProbability =
+                1 - aiProbability;
+
+
+            let aiPercent =
+                aiProbability * 100;
+
+            let humanPercent =
+                humanProbability * 100;
+
+
+            let classificationResult;
+
+
+            if (aiProbability >= 0.75) {
+
+                classificationResult =
+                    "AI-LIKE";
+
+            }
+
+            else if (aiProbability <= 0.25) {
+
+                classificationResult =
+                    "HUMAN-LIKE";
+
+            }
+
+            else {
+
+                classificationResult =
+                    "UNCERTAIN";
+
+            }
+
+
+            aiScore.textContent =
+                aiPercent.toFixed(1) + "%";
+
+            humanScore.textContent =
+                humanPercent.toFixed(1) + "%";
+
+
+            aiBar.style.width =
+                aiPercent + "%";
+
+            humanBar.style.width =
+                humanPercent + "%";
+
+
+            resultWordCount.textContent =
+                words;
+
+
+            classification.textContent =
+                classificationResult;
+
+
+            resultTitle.textContent =
+                classificationResult;
+
+
+            resultTitle.className =
+                "result-title";
+
+
+            if (classificationResult === "AI-LIKE") {
+
+                resultTitle.classList.add("ai");
+
+            }
+
+            else if (classificationResult === "HUMAN-LIKE") {
+
+                resultTitle.classList.add("human");
+
+            }
+
+            else {
+
+                resultTitle.classList.add("uncertain");
+
+            }
+
+
+            result.style.display = "block";
+
+        }
+
+
+        /*
+         * Simple demonstration scoring.
+         *
+         * This DOES NOT replace the trained
+         * Logistic Regression model.
+         */
+
+        function calculateDemoScore(text) {
+
+            const lower =
+                text.toLowerCase();
+
+
+            let score = 0.50;
+
+
+            const aiPatterns = [
+
+                "in today's",
+                "furthermore",
+                "moreover",
+                "it is important to note",
+                "in conclusion",
+                "plays a crucial role",
+                "rapidly evolving",
+                "multifaceted",
+                "comprehensive",
+                "significant"
+
+            ];
+
+
+            const humanPatterns = [
+
+                "lol",
+                "haha",
+                "idk",
+                "gonna",
+                "wanna",
+                "yeah",
+                "bro",
+                "honestly"
+
+            ];
+
+
+            aiPatterns.forEach(pattern => {
+
+                if (lower.includes(pattern)) {
+
+                    score += 0.04;
+
+                }
+
+            });
+
+
+            humanPatterns.forEach(pattern => {
+
+                if (lower.includes(pattern)) {
+
+                    score -= 0.06;
+
+                }
+
+            });
+
+
+            /*
+             * Longer text gives the demo slightly
+             * more confidence, but this is still
+             * NOT machine-learning prediction.
+             */
+
+            const words =
+                countWords(text);
+
+
+            if (words > 100) {
+
+                score += 0.03;
+
+            }
+
+
+            if (words < 15) {
+
+                score = 0.50;
+
+            }
+
+
+            return Math.max(
+                0.02,
+                Math.min(0.98, score)
+            );
+
+        }
+
+
+        function loadExample(number) {
+
+            if (number === 1) {
+
+                textInput.value =
+                    "Technology has changed the way people communicate, work and access information.";
+
+            }
+
+
+            if (number === 2) {
+
+                textInput.value =
+                    "In today's rapidly evolving technological landscape, artificial intelligence continues to transform numerous aspects of modern society.";
+
+            }
+
+
+            updateWordCount();
+
+            detectText();
+
+        }
+
+    </script>
+
+</body>
+</html>
